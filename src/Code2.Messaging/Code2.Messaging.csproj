@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>11.0</LangVersion>
+		<IsPackable>true</IsPackable>
+
+		<Title>$(AssemblyName)</Title>
+		<Authors>2code</Authors>
+		<PackageProjectUrl>https://github.com/2code-it/Code2.Web.SseTyped</PackageProjectUrl>
+		<PackageTags>minimal inprocess messaging</PackageTags>
+		<RepositoryUrl>https://github.com/2code-it/Code2.Web.SseTyped.git</RepositoryUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Description>Message bus for inprocess messaging</Description>
+		<PackageLicenseExpression>BSD-2-Clause</PackageLicenseExpression>
+		<OutputType>Library</OutputType>
+		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+	</ItemGroup>
+
+</Project>
