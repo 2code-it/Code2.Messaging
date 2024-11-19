@@ -36,7 +36,7 @@ public class MessageBusTests
 		messageBus.Configure(x =>
 		{
 			x.LoadFromAssemblies = true;
-			x.LoadMessageHandlerFilter = (t) => t.GetInterfaces().Where(x => x.IsGenericType).Select(x=>x.GetGenericTypeDefinition()).Any(x => x == typeof(IQueryHandler<,>));
+			x.LoadTypeFilter = (t) => t.GetInterfaces().Where(x => x.IsGenericType).Select(x=>x.GetGenericTypeDefinition()).Any(x => x == typeof(IQueryHandler<,>));
 		});
 
 		var handlers = messageBus.GetMessageHandlers();
@@ -67,7 +67,7 @@ public class MessageBusTests
 		messageBus.Configure(x =>
 		{
 			x.LoadFromAssemblies = true;
-			x.LoadEventSourceFilter = (t) => t.IsAssignableTo(typeof(IPublisher));
+			x.LoadTypeFilter = (t) => t.IsAssignableTo(typeof(IPublisher));
 		});
 		var sources = messageBus.GetEventSources();
 

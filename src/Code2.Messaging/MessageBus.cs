@@ -205,14 +205,14 @@ public class MessageBus : IMessageBus
 	private bool MessageHandlerTypeFilter(Type type)
 		=> type.GetMethods().Any(x =>
 			x.Name == _options.MessageHandlerMethodName)
-			&& (_options.LoadMessageHandlerFilter is null || _options.LoadMessageHandlerFilter(type));
+			&& (_options.LoadTypeFilter is null || _options.LoadTypeFilter(type));
 
 	private bool EventSourceTypeFilter(Type type)
 		=> type.GetProperties().Any(x =>
 			x.Name.StartsWith(_options.EventSourceNamePrefix)
 			&& x.PropertyType.IsGenericType
 			&& x.PropertyType.GetGenericTypeDefinition() == typeof(Action<>))
-			&& (_options.LoadEventSourceFilter is null || _options.LoadEventSourceFilter(type));
+			&& (_options.LoadTypeFilter is null || _options.LoadTypeFilter(type));
 
 	private Action<T> GetPublishAction<T>() where T : class
 		=> async (T message) => { await SendAsync(message); };
