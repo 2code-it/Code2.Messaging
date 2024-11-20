@@ -65,9 +65,25 @@ internal class ReflectionUtility : IReflectionUtility
 		return methodInfo.MakeGenericMethod(genericArgumentTypes).Invoke(instance, parameters);
 	}
 
-	public object ActivatorCreateInstance(IServiceProvider? serviceProvider, Type type)
+	public object GetOrCreateInstance(IServiceProvider? serviceProvider, Type type, bool useInterfacesAsKey = true)
 	{
-		if(serviceProvider is not null) return ActivatorUtilities.CreateInstance(serviceProvider, type);
+		if (Nullable.GetUnderlyingType(type) is not null) throw new NotSupportedException($"Nullable type {type} not supported");
+		
+		if (serviceProvider is not null)
+		{
+			object? result = serviceProvider.GetService(type);
+			if (result is not null) return result;
+
+			var interfaces = type.GetInterfaces();
+			foreach (var iface in interfaces)
+			{
+				result = serviceProvider.GetService(iface);
+				if(result is not null) return result;
+			}
+
+			return ActivatorUtilities.CreateInstance(serviceProvider, type);
+		}
+
 		try
 		{
 			return Activator.CreateInstance(type)!;

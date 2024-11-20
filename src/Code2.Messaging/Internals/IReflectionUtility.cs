@@ -10,5 +10,5 @@ internal interface IReflectionUtility
 	string[] GetActionTypePropertyNames(Type type, string propertyNamePrefix, bool canWrite);
 	void SetPropertyValue(string propertyName, object instance, object? value);
 	object? InvokePrivateGenericMethod(object instance, string methodName, Type[] genericArgumentTypes, object?[]? parameters);
-	object ActivatorCreateInstance(IServiceProvider? serviceProvider, Type type);
+	public object GetOrCreateInstance(IServiceProvider? serviceProvider, Type type, bool useInterfacesAsKey = true);
 }

@@ -102,7 +102,7 @@ public class MessageBus : IMessageBus
 	public int AddMessageHandlers(Type type)
 	{
 		var existing = GetHandlerOrEventSourceInstance(type);
-		object instance = existing is not null ? existing : _serviceProvider?.GetService(type) ?? _reflectionUtility.ActivatorCreateInstance(_serviceProvider, type);
+		object instance = existing is not null ? existing : _reflectionUtility.GetOrCreateInstance(_serviceProvider, type);
 		return AddMessageHandlers(instance);
 	}
 
@@ -149,7 +149,7 @@ public class MessageBus : IMessageBus
 	public int AddEventSources(Type type)
 	{
 		var existing = GetHandlerOrEventSourceInstance(type);
-		object instance = existing is not null? existing: _serviceProvider?.GetService(type) ?? _reflectionUtility.ActivatorCreateInstance(_serviceProvider, type);
+		object instance = existing is not null? existing: _reflectionUtility.GetOrCreateInstance(_serviceProvider, type);
 		return AddEventSources(instance);
 	}
 
