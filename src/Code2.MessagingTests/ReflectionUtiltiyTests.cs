@@ -132,22 +132,22 @@ public class ReflectionUtiltiyTests
 	}
 
 	[TestMethod]
-	public void ActivatorCreateInstance_When_TargetHasNoDependeny_Expect_CreateSuccess()
+	public void GetOrCreateInstance_When_TargetHasNoDependency_Expect_CreateSuccess()
 	{
 		ReflectionUtility reflectionUtility = new ReflectionUtility();
 
-		CreateInstanceSubject subject = (CreateInstanceSubject)reflectionUtility.ActivatorCreateInstance(null, typeof(CreateInstanceSubject));
+		CreateInstanceSubject subject = (CreateInstanceSubject)reflectionUtility.GetOrCreateInstance(null, typeof(CreateInstanceSubject));
 
 		Assert.IsNotNull(subject);
 	}
 
 	[TestMethod]
 	[ExpectedException(typeof(InvalidOperationException))]
-	public void ActivatorCreateInstance_When_NoServiceProviderAndTargetHasDependency_Expect_Exception()
+	public void GetOrCreateInstance_When_NoServiceProviderAndTargetHasDependency_Expect_Exception()
 	{
 		ReflectionUtility reflectionUtility = new ReflectionUtility();
 
-		CreateInstanceSubject subject = (CreateInstanceSubject)reflectionUtility.ActivatorCreateInstance(null, typeof(CreateInstanceSubjectWithDependency));
+		CreateInstanceSubject subject = (CreateInstanceSubject)reflectionUtility.GetOrCreateInstance(null, typeof(CreateInstanceSubjectWithDependency));
 	}
 
 	//
