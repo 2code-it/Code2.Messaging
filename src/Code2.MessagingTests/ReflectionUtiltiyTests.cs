@@ -84,13 +84,16 @@ public class ReflectionUtiltiyTests
 	}
 
 	[TestMethod]
-	[DataRow("Publish", 2)]
-	[DataRow("Unknown", 0)]
-	public void GetActionTypePropertyNames_When_Called_Expect_PropertyNamesAccordingToArguments(string propertyNamePrefix, int expectedAmount)
+	[DataRow(typeof(TestEventSource), "Publish", 2)]
+	[DataRow(typeof(TestEventSource), "Unknown", 0)]
+	public void GetPropertyNames_When_Called_Expect_PropertyNamesAccordingToArguments(Type type, string propertyNamePrefix, int expectedAmount)
 	{
 		ReflectionUtility reflectionUtility = new ReflectionUtility();
+		bool propertyTypeFilter(Type type) => type.IsGenericType && (
+			(type.GetGenericTypeDefinition() == typeof(Func<,,>) && type.GenericTypeArguments[1] == typeof(CancellationToken) && type.GenericTypeArguments[2] == typeof(Task))
+			|| type.GetGenericTypeDefinition() == typeof(Action<>));
 
-		string[] propertyNames = reflectionUtility.GetActionTypePropertyNames(typeof(TestEventSource), propertyNamePrefix, true);
+		string[] propertyNames = reflectionUtility.GetPropertyNames(type, x => x.CanWrite && x.Name.StartsWith(propertyNamePrefix), propertyTypeFilter);
 
 		Assert.AreEqual(expectedAmount, propertyNames.Length);
 	}
@@ -102,10 +105,10 @@ public class ReflectionUtiltiyTests
 		TestEventSource eventSource = new TestEventSource();
 		string textSend = "new message";
 		string textReceive = string.Empty;
-		Action<TestMessage1> delegate1 = (TestMessage1 message) => { textReceive = message.Text; };
+		Func<TestMessage1, CancellationToken, Task> delegate1 = (TestMessage1 message, CancellationToken token) => { textReceive = message.Text; return Task.CompletedTask; };
 
 		reflectionUtility.SetPropertyValue(nameof(TestEventSource.PublishEvent1), eventSource, delegate1);
-		eventSource.PublishEvent1?.Invoke(new TestMessage1(textSend));
+		eventSource.PublishEvent1?.Invoke(new TestMessage1(textSend), default);
 
 		Assert.AreEqual(textSend, textReceive);
 	}

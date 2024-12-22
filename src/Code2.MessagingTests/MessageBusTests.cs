@@ -1,11 +1,12 @@
-﻿using Code2.Messaging.Internals;
+﻿using Code2.Messaging;
+using Code2.Messaging.Internals;
 using Code2.MessagingTests.Assets;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Code2.Messaging.Tests;
+namespace Code2.MessagingTests;
 
 [TestClass]
 public class MessageBusTests
@@ -36,7 +37,7 @@ public class MessageBusTests
 		messageBus.Configure(x =>
 		{
 			x.LoadFromAssemblies = true;
-			x.LoadTypeFilter = (t) => t.GetInterfaces().Where(x => x.IsGenericType).Select(x=>x.GetGenericTypeDefinition()).Any(x => x == typeof(IQueryHandler<,>));
+			x.LoadTypeFilter = (t) => t.GetInterfaces().Where(x => x.IsGenericType).Select(x => x.GetGenericTypeDefinition()).Any(x => x == typeof(IQueryHandler<,>));
 		});
 
 		var handlers = messageBus.GetMessageHandlers();

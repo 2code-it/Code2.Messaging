@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Code2.MessagingTests.Assets;
 
-public class TestMessageHandler1: IQueryHandler<TestMessage1, TestResponse1>, IMessageHandler<TestMessage2>
+public class TestMessageHandler1 : IQueryHandler<TestMessage1, TestResponse1>, IMessageHandler<TestMessage2>
 {
 	public static TestMessageHandler1 Instance { get; private set; } = new();
 
