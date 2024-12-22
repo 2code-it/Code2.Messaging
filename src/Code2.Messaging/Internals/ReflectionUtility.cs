@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -68,7 +67,7 @@ internal class ReflectionUtility : IReflectionUtility
 	public object GetOrCreateInstance(IServiceProvider? serviceProvider, Type type, bool useInterfacesAsKey = true)
 	{
 		if (Nullable.GetUnderlyingType(type) is not null) throw new NotSupportedException($"Nullable type {type} not supported");
-		
+
 		if (serviceProvider is not null)
 		{
 			object? result = serviceProvider.GetService(type);
@@ -78,7 +77,7 @@ internal class ReflectionUtility : IReflectionUtility
 			foreach (var iface in interfaces)
 			{
 				result = serviceProvider.GetService(iface);
-				if(result is not null) return result;
+				if (result is not null) return result;
 			}
 
 			return ActivatorUtilities.CreateInstance(serviceProvider, type);

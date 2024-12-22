@@ -2,7 +2,6 @@
 using Code2.Messaging.Internals;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,7 +52,7 @@ public class MessageBus : IMessageBus
 		return await TryInvokeHandler<M, Task<R>>(message, messageHandler.Handler, cancellationToken);
 	}
 
-	private T TryInvokeHandler<M, T>(M message, Delegate handler, CancellationToken cancellationToken) where T: Task
+	private T TryInvokeHandler<M, T>(M message, Delegate handler, CancellationToken cancellationToken) where T : Task
 	{
 		Func<M, CancellationToken, T> func = (Func<M, CancellationToken, T>)handler;
 		try

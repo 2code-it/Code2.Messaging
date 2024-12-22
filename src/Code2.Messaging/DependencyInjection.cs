@@ -14,7 +14,7 @@ public static class DependencyInjection
 	public static IServiceProvider UseMessageBus(this IServiceProvider serviceProvider, Action<MessageBusOptions>? config = null)
 	{
 		IMessageBus messageBus = serviceProvider.GetRequiredService<IMessageBus>();
-		if(config is not null) messageBus.Configure(config);
+		if (config is not null) messageBus.Configure(config);
 		return serviceProvider;
 	}
 }
