@@ -33,17 +33,18 @@ internal class ReflectionUtility : IReflectionUtility
 		return methods.Select(method =>
 		{
 			Type[] parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
-			if (parameterTypes.Length != 2 || parameterTypes[1] != typeof(CancellationToken)) throw new InvalidOperationException($"Invalid message handler on type '{type}', expected [messageType, CancellationToken], found [{string.Join(",", parameterTypes.Select(x=>x.Name))}]");
+			if (parameterTypes.Length != 2 || parameterTypes[1] != typeof(CancellationToken)) throw new InvalidOperationException($"Invalid message handler on type '{type}', expected [messageType, CancellationToken], found [{string.Join(",", parameterTypes.Select(x => x.Name))}]");
 			Type funcType = Expression.GetFuncType(parameterTypes[0], parameterTypes[1], method.ReturnType);
-			Type? taskResultType = method.ReturnType.IsGenericType ? method.ReturnType.GenericTypeArguments.First() : null;
 			Delegate func = Delegate.CreateDelegate(funcType, instance, method);
+			Type? taskResultType = method.ReturnType.IsGenericType ? method.ReturnType.GenericTypeArguments.First() : null;
+
 			return (func, parameterTypes[0], taskResultType);
 		}).ToArray();
 	}
 
-	public string[] GetActionTypePropertyNames(Type type, string propertyNamePrefix, bool canWrite)
+	public string[] GetPropertyNames(Type type, Func<PropertyInfo, bool>? propertyFilter = null, Func<Type, bool>? propertyTypeFilter = null)
 		=> type.GetProperties()
-			.Where(x => x.Name.StartsWith(propertyNamePrefix) && x.CanWrite == canWrite && x.PropertyType.IsGenericType && x.PropertyType.GetGenericTypeDefinition() == typeof(Action<>))
+			.Where(x => (propertyFilter is null || propertyFilter(x)) && (propertyTypeFilter is null || propertyTypeFilter(x.PropertyType)))
 			.Select(x => x.Name)
 			.ToArray();
 

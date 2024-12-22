@@ -36,7 +36,7 @@ public class MessageBus : IMessageBus
 		List<MessageHandlerInfo> messageHandlers = _messageHandlers[typeof(M)];
 		var tasks = messageHandlers.Where(x => x.ResultTaskGenericArgument is null)
 			.AsParallel()
-			.Select(x => TryInvokeHandler<M, Task>(message, x.Handler, cancellationToken))
+			.Select(async x => await TryInvokeHandler<M, Task>(message, x.Handler, cancellationToken))
 			.ToArray();
 
 		await Task.WhenAll(tasks);
@@ -73,7 +73,7 @@ public class MessageBus : IMessageBus
 
 		Type[]? handlerTypes = true switch
 		{
-			true when _options.LoadFromAssemblies => _reflectionUtility.GetNonFrameworkClasses(MessageHandlerTypeFilter),
+			true when _options.LoadFromAssemblies => _reflectionUtility.GetNonFrameworkClasses(x => MessageHandlerTypeFilter(x, _options.LoadTypeFilter)),
 			true when _options.MessageHandlerTypes is not null => _options.MessageHandlerTypes,
 			_ => null
 		};
@@ -82,7 +82,7 @@ public class MessageBus : IMessageBus
 
 		Type[]? eventSourceTypes = true switch
 		{
-			true when _options.LoadFromAssemblies => _reflectionUtility.GetNonFrameworkClasses(EventSourceTypeFilter),
+			true when _options.LoadFromAssemblies => _reflectionUtility.GetNonFrameworkClasses(x => EventSourceTypeFilter(x, _options.LoadTypeFilter)),
 			true when _options.EventSourceTypes is not null => _options.EventSourceTypes,
 			_ => null
 		};
@@ -148,19 +148,21 @@ public class MessageBus : IMessageBus
 	public int AddEventSources(Type type)
 	{
 		var existing = GetHandlerOrEventSourceInstance(type);
-		object instance = existing is not null? existing: _reflectionUtility.GetOrCreateInstance(_serviceProvider, type);
+		object instance = existing is not null ? existing : _reflectionUtility.GetOrCreateInstance(_serviceProvider, type);
 		return AddEventSources(instance);
 	}
 
 	public int AddEventSources(object instance)
 	{
 		Type type = instance.GetType();
-		string[] propertyNames = _reflectionUtility.GetActionTypePropertyNames(type, _options.EventSourceNamePrefix, true);
+		string[] propertyNames = _reflectionUtility.GetPropertyNames(type, x => x.Name.StartsWith(_options.EventSourceNamePrefix) && x.CanWrite, EventSourcePropertyTypeFilter);
 		foreach (string propertyName in propertyNames)
 		{
-			Type messageType = type.GetProperty(propertyName)!.PropertyType.GetGenericArguments()[0];
-			object action = _reflectionUtility.InvokePrivateGenericMethod(this, nameof(GetPublishAction), new[] { messageType }, null)!;
-			_reflectionUtility.SetPropertyValue(propertyName, instance, action);
+			Type propertyType = type.GetProperty(propertyName)!.PropertyType;
+			Type messageType = propertyType.GetGenericArguments()[0];
+			string getSendDelegateMethodName = propertyType.GetGenericTypeDefinition() == typeof(Action<>) ? nameof(GetSendDelegateAction) : nameof(GetSendDelegateFunc);
+			object sendDelegate = _reflectionUtility.InvokePrivateGenericMethod(this, getSendDelegateMethodName, new[] { messageType }, null)!;
+			_reflectionUtility.SetPropertyValue(propertyName, instance, sendDelegate);
 			_eventSources.Add(new EventSourceInfo(instance, propertyName, messageType));
 		}
 
@@ -196,23 +198,32 @@ public class MessageBus : IMessageBus
 
 	private object? GetHandlerOrEventSourceInstance(Type handlerOrEventSourceType)
 	{
-		object? instance = _messageHandlers.Values.Select(x => x.FirstOrDefault(y=>y.Instance.GetType() == handlerOrEventSourceType)).FirstOrDefault();
+		object? instance = _messageHandlers.Values.Select(x => x.FirstOrDefault(y => y.Instance.GetType() == handlerOrEventSourceType)).FirstOrDefault();
 		if (instance is not null) return instance;
 		return _eventSources.FirstOrDefault(x => x.Instance.GetType() == handlerOrEventSourceType)?.Instance;
 	}
 
-	private bool MessageHandlerTypeFilter(Type type)
+	private bool MessageHandlerTypeFilter(Type type, Func<Type, bool>? filter = null)
 		=> type.GetMethods().Any(x =>
 			x.Name == _options.MessageHandlerMethodName)
-			&& (_options.LoadTypeFilter is null || _options.LoadTypeFilter(type));
+			&& (filter is null || filter(type));
 
-	private bool EventSourceTypeFilter(Type type)
+	private bool EventSourceTypeFilter(Type type, Func<Type, bool>? filter = null)
 		=> type.GetProperties().Any(x =>
-			x.Name.StartsWith(_options.EventSourceNamePrefix)
-			&& x.PropertyType.IsGenericType
-			&& x.PropertyType.GetGenericTypeDefinition() == typeof(Action<>))
-			&& (_options.LoadTypeFilter is null || _options.LoadTypeFilter(type));
+				x.Name.StartsWith(_options.EventSourceNamePrefix)
+				&& x.CanWrite
+				&& EventSourcePropertyTypeFilter(x.PropertyType))
+			&& (filter is null || filter(type));
 
-	private Action<T> GetPublishAction<T>() where T : class
-		=> async (T message) => { await SendAsync(message); };
+	private bool EventSourcePropertyTypeFilter(Type type)
+		=> type.IsGenericType && (
+			(type.GetGenericTypeDefinition() == typeof(Func<,,>) && type.GenericTypeArguments[1] == typeof(CancellationToken) && type.GenericTypeArguments[2] == typeof(Task))
+			|| type.GetGenericTypeDefinition() == typeof(Action<>)
+		);
+
+	private Func<T, CancellationToken, Task> GetSendDelegateFunc<T>() where T : class
+		=> async (T message, CancellationToken token) => { await SendAsync(message, token); };
+
+	private Action<T> GetSendDelegateAction<T>() where T : class
+		=> (T message) => { Task.WaitAll(SendAsync(message)); };
 }
