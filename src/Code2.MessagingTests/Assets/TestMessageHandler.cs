@@ -9,7 +9,7 @@ public class TestMessageHandler1 : IQueryHandler<TestMessage1, TestResponse1>, I
 
 	public async Task<TestResponse1> Handle(TestMessage1 message, CancellationToken cancellationToken = default)
 	{
-		return await Task.FromResult(new TestResponse1("testResponse1"));
+		return await Task.FromResult(new TestResponse1(message.Text));
 	}
 
 	public async Task Handle(TestMessage2 message, CancellationToken cancellationToken = default)

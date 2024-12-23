@@ -9,8 +9,14 @@ public class TestEventSource : IPublisher
 
 	public static TestEventSource Instance { get; private set; } = new();
 
+	public Func<TestMessage1, CancellationToken, Task<TestResponse1>>? PublishQuery1 { get; set; }
 	public Func<TestMessage1, CancellationToken, Task>? PublishEvent1 { get; set; }
 	public Action<TestMessage2>? PublishEvent2 { get; set; }
+
+	public TestResponse1? RaiseQuery1(string messageText)
+	{
+		return PublishQuery1?.Invoke(new TestMessage1(messageText), default).Result;
+	}
 
 	public void RaiseEvent1(string messageText)
 	{

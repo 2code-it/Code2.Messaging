@@ -86,6 +86,21 @@ public class MessageBusTests
 		await messageBus.SendAsync<TestMessage2, TestResponse2>(new TestMessage2(1, string.Empty));
 	}
 
+	[TestMethod]
+	public async Task AddEventSources_When_EventHasResponse_Expect_Response()
+	{
+		var reflectionUtility = new ReflectionUtility();
+		MessageBus messageBus = new(null, reflectionUtility);
+		messageBus.AddMessageHandlers(TestMessageHandler1.Instance);
+		messageBus.AddEventSources(TestEventSource.Instance);
+		string testText = "query1";
+
+		var response = TestEventSource.Instance.RaiseQuery1(testText);
+
+		Assert.IsNotNull(response);
+		Assert.AreEqual(testText, response.Text);
+	}
+
 
 	private int GetEventSourcesCount<T>(string eventSourceNamePrefix)
 		=> typeof(T).GetProperties().Where(x => x.CanWrite && x.Name.StartsWith(eventSourceNamePrefix)).Count();

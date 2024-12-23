@@ -159,9 +159,24 @@ public class MessageBus : IMessageBus
 		foreach (string propertyName in propertyNames)
 		{
 			Type propertyType = type.GetProperty(propertyName)!.PropertyType;
+			Type propertyGenericTypeDefinition = propertyType.GetGenericTypeDefinition();
 			Type messageType = propertyType.GetGenericArguments()[0];
-			string getSendDelegateMethodName = propertyType.GetGenericTypeDefinition() == typeof(Action<>) ? nameof(GetSendDelegateAction) : nameof(GetSendDelegateFunc);
-			object sendDelegate = _reflectionUtility.InvokePrivateGenericMethod(this, getSendDelegateMethodName, new[] { messageType }, null)!;
+			string getSendDelegateMethodName = nameof(GetSendDelegateAction);
+			Type[] getSendDelegateGenericArguments = new[] { messageType };
+
+			if (propertyGenericTypeDefinition != typeof(Action<>))
+			{
+				getSendDelegateMethodName = nameof(GetSendDelegateFunc);
+				Type taskType = propertyType.GetGenericArguments()[2];
+				Type? returnType = taskType.IsGenericType ? taskType.GetGenericArguments()[0]: null;
+				if (returnType is not null)
+				{
+					getSendDelegateMethodName = nameof(GetQueryDelegateFunc);
+					getSendDelegateGenericArguments = new[] { messageType, returnType };
+				}
+			}
+
+			object sendDelegate = _reflectionUtility.InvokePrivateGenericMethod(this, getSendDelegateMethodName, getSendDelegateGenericArguments, null)!;
 			_reflectionUtility.SetPropertyValue(propertyName, instance, sendDelegate);
 			_eventSources.Add(new EventSourceInfo(instance, propertyName, messageType));
 		}
@@ -216,14 +231,28 @@ public class MessageBus : IMessageBus
 			&& (filter is null || filter(type));
 
 	private bool EventSourcePropertyTypeFilter(Type type)
-		=> type.IsGenericType && (
-			(type.GetGenericTypeDefinition() == typeof(Func<,,>) && type.GenericTypeArguments[1] == typeof(CancellationToken) && type.GenericTypeArguments[2] == typeof(Task))
-			|| type.GetGenericTypeDefinition() == typeof(Action<>)
-		);
+	{
+		return type.IsGenericType
+			&& (type.GetGenericTypeDefinition() == typeof(Action<>)
+				|| (type.GetGenericTypeDefinition() == typeof(Func<,,>)
+					&& type.GenericTypeArguments[1] == typeof(CancellationToken)
+					&& (type.GenericTypeArguments[2] == typeof(Task)
+						|| (type.GenericTypeArguments[2].IsGenericType 
+							&& type.GenericTypeArguments[2].GetGenericTypeDefinition() == typeof(Task<>)
+		))));
+	}
 
-	private Func<T, CancellationToken, Task> GetSendDelegateFunc<T>() where T : class
-		=> async (T message, CancellationToken token) => { await SendAsync(message, token); };
 
-	private Action<T> GetSendDelegateAction<T>() where T : class
-		=> (T message) => { Task.WaitAll(SendAsync(message)); };
+	private Func<T, CancellationToken, Task> GetSendDelegateFunc<T>() 
+		where T : class
+		=> async (T message, CancellationToken token) => await SendAsync(message, token);
+
+	private Func<T, CancellationToken, Task<R>> GetQueryDelegateFunc<T, R>() 
+		where T : class
+		where R : class
+		=> SendAsync<T, R>;
+
+	private Action<T> GetSendDelegateAction<T>() 
+		where T : class
+		=> (T message) => Task.WaitAll(SendAsync(message));
 }
